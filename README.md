@@ -1,4 +1,4 @@
-# timetype ![Go](https://github.com/Semior001/timetype/workflows/Go/badge.svg) [![Coverage Status](https://coveralls.io/repos/github/Semior001/timetype/badge.svg?branch=master)](https://coveralls.io/github/Semior001/timetype?branch=master) [![go report card](https://goreportcard.com/badge/github.com/semior001/timetype)](https://goreportcard.com/report/github.com/semior001/timetype)
+# timetype ![Go](https://github.com/Semior001/timetype/workflows/Go/badge.svg) [![Coverage Status](https://coveralls.io/repos/github/Semior001/timetype/badge.svg?branch=master)](https://coveralls.io/github/Semior001/timetype?branch=master) [![go report card](https://goreportcard.com/badge/github.com/semior001/timetype)](https://goreportcard.com/report/github.com/semior001/timetype) [![PkgGoDev](https://pkg.go.dev/badge/github.com/Semior001/timetype)](https://pkg.go.dev/github.com/Semior001/timetype)
 Package adds some time types for easier work, serialize and deserialize them in requests.
 
 ```go
