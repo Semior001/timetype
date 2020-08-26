@@ -29,6 +29,14 @@ func TestClock_UnmarshalJSON(t *testing.T) {
 	assert.IsType(t, &time.ParseError{}, err, "invalid character \"c\" in seconds")
 }
 
+func TestNewClock(t *testing.T) {
+	assert.Equal(t, Clock(time.Date(0, 0, 0, 13, 24, 32, 0, time.Local)),
+		NewClock(13, 24, 32, time.Local))
+
+	assert.Equal(t, Clock(time.Date(0, 0, 0, 23, 59, 59, 0, time.UTC)),
+		NewUTCClock(23, 59, 59))
+}
+
 func TestDuration_UnmarshalJSON(t *testing.T) {
 	var d Duration
 	err := d.UnmarshalJSON([]byte("\"1h5m3s\""))

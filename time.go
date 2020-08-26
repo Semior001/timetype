@@ -19,6 +19,16 @@ const ISO8601Clock = "15:04:05"
 // ISO 8601 format, like "15:04:05"
 type Clock time.Time
 
+// NewClock returns the Clock in the given location with given hours, minutes and secs
+func NewClock(h, m, s int, loc *time.Location) Clock {
+	return Clock(time.Date(0, 0, 0, h, m, s, 0, loc))
+}
+
+// NewUTCClock returns new clock with given hours, minutes and seconds in the UTC location
+func NewUTCClock(h, m, s int) Clock {
+	return NewClock(h, m, s, time.UTC)
+}
+
 // MarshalJSON marshals time into time
 func (h Clock) MarshalJSON() ([]byte, error) {
 	return json.Marshal(time.Time(h).Format(ISO8601Clock))
