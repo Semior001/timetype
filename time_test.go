@@ -21,7 +21,8 @@ func TestClock_UnmarshalJSON(t *testing.T) {
 	assert.IsType(t, &json.SyntaxError{}, err, "time should be escaped in quotes")
 
 	err = c.UnmarshalJSON([]byte("32145")) // invalid clock format
-	assert.EqualError(t, err, "invalid clock", "clock should be in format \"15:04:05\"")
+	assert.EqualError(t, err, "timetype: invalid clock", "clock should be in format \"15:04:05\"")
+	assert.Equal(t, ErrInvalidClock, err)
 
 	err = c.UnmarshalJSON([]byte("\"19:24:c00\""))
 	require.Error(t, err)
@@ -40,7 +41,8 @@ func TestDuration_UnmarshalJSON(t *testing.T) {
 
 	// errors
 	err = d.UnmarshalJSON([]byte("true"))
-	require.EqualError(t, err, "invalid duration", "passed bool to type duration")
+	require.EqualError(t, err, "timetype: invalid duration", "passed bool to type duration")
+	assert.Equal(t, ErrInvalidDuration, err)
 
 	err = d.UnmarshalJSON([]byte("1h5m3s"))
 	require.Error(t, err)

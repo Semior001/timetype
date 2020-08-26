@@ -6,6 +6,12 @@ import (
 	"time"
 )
 
+// Parsing errors
+var (
+	ErrInvalidClock    = errors.New("timetype: invalid clock")
+	ErrInvalidDuration = errors.New("timetype: invalid duration")
+)
+
 // ISO8601Clock describes time layout in ISO 8601 standard
 const ISO8601Clock = "15:04:05"
 
@@ -26,7 +32,7 @@ func (h *Clock) UnmarshalJSON(b []byte) error {
 	}
 	val, ok := v.(string)
 	if !ok {
-		return errors.New("invalid clock")
+		return ErrInvalidClock
 	}
 	t, err := time.Parse(ISO8601Clock, val)
 	if err != nil {
@@ -62,6 +68,6 @@ func (d *Duration) UnmarshalJSON(b []byte) error {
 		*d = Duration(tmp)
 		return nil
 	default:
-		return errors.New("invalid duration")
+		return ErrInvalidDuration
 	}
 }
