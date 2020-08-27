@@ -3,6 +3,7 @@ package timetype
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"time"
 )
 
@@ -32,6 +33,18 @@ func NewUTCClock(h, m, s int) Clock {
 // MarshalJSON marshals time into time
 func (h Clock) MarshalJSON() ([]byte, error) {
 	return json.Marshal(time.Time(h).Format(ISO8601Clock))
+}
+
+// String implements fmt.Stringer to print and log Clock properly
+func (h Clock) String() string {
+	t := time.Time(h)
+	return fmt.Sprintf("%d:%d:%d %s", t.Hour(), t.Minute(), t.Second(), t.Location())
+}
+
+// GoString implements fmt.GoStringer to use Clock in %#v formats
+func (h Clock) GoString() string {
+	t := time.Time(h)
+	return fmt.Sprintf("timetype.NewClock(%d, %d, %d, %#v)", t.Hour(), t.Minute(), t.Second(), t.Location())
 }
 
 // UnmarshalJSON converts time to ISO 8601 representation

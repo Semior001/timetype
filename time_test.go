@@ -9,6 +9,18 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestClock_GoString(t *testing.T) {
+	s := Clock(time.Date(0, 0, 0, 13, 24, 0, 0, time.UTC)).GoString()
+	gs := "timetype.NewClock(13, 24, 0, &time.Location{name:\"UTC\", zone:[]time.zone(nil), " +
+		"tx:[]time.zoneTrans(nil), cacheStart:0, cacheEnd:0, cacheZone:(*time.zone)(nil)})"
+	assert.Equal(t, gs, s)
+}
+
+func TestClock_String(t *testing.T) {
+	s := Clock(time.Date(0, 0, 0, 17, 54, 0, 0, time.UTC)).String()
+	assert.Equal(t, "17:54:0 UTC", s)
+}
+
 func TestClock_UnmarshalJSON(t *testing.T) {
 	var c Clock
 	err := c.UnmarshalJSON([]byte("\"19:24:00\""))
