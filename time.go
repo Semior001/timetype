@@ -22,7 +22,7 @@ type Clock time.Time
 
 // NewClock returns the Clock in the given location with given hours, minutes and secs
 func NewClock(h, m, s int, loc *time.Location) Clock {
-	return Clock(time.Date(0, 0, 0, h, m, s, 0, loc))
+	return Clock(time.Date(0, time.January, 1, h, m, s, 0, loc))
 }
 
 // NewUTCClock returns new clock with given hours, minutes and seconds in the UTC location

@@ -10,14 +10,14 @@ import (
 )
 
 func TestClock_GoString(t *testing.T) {
-	s := Clock(time.Date(0, 0, 0, 13, 24, 0, 0, time.UTC)).GoString()
+	s := Clock(time.Date(0, time.January, 1, 13, 24, 0, 0, time.UTC)).GoString()
 	gs := "timetype.NewClock(13, 24, 0, &time.Location{name:\"UTC\", zone:[]time.zone(nil), " +
 		"tx:[]time.zoneTrans(nil), cacheStart:0, cacheEnd:0, cacheZone:(*time.zone)(nil)})"
 	assert.Equal(t, gs, s)
 }
 
 func TestClock_String(t *testing.T) {
-	s := Clock(time.Date(0, 0, 0, 17, 54, 0, 0, time.UTC)).String()
+	s := Clock(time.Date(0, time.January, 1, 17, 54, 0, 0, time.UTC)).String()
 	assert.Equal(t, "17:54:0 UTC", s)
 }
 
@@ -42,10 +42,10 @@ func TestClock_UnmarshalJSON(t *testing.T) {
 }
 
 func TestNewClock(t *testing.T) {
-	assert.Equal(t, Clock(time.Date(0, 0, 0, 13, 24, 32, 0, time.Local)),
+	assert.Equal(t, Clock(time.Date(0, time.January, 1, 13, 24, 32, 0, time.Local)),
 		NewClock(13, 24, 32, time.Local))
 
-	assert.Equal(t, Clock(time.Date(0, 0, 0, 23, 59, 59, 0, time.UTC)),
+	assert.Equal(t, Clock(time.Date(0, time.January, 1, 23, 59, 59, 0, time.UTC)),
 		NewUTCClock(23, 59, 59))
 }
 
