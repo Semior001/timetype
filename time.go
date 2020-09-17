@@ -1,6 +1,7 @@
 package timetype
 
 import (
+	"database/sql/driver"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -38,13 +39,13 @@ func (h Clock) MarshalJSON() ([]byte, error) {
 // String implements fmt.Stringer to print and log Clock properly
 func (h Clock) String() string {
 	t := time.Time(h)
-	return fmt.Sprintf("%d:%d:%d %s", t.Hour(), t.Minute(), t.Second(), t.Location())
+	return fmt.Sprintf("%02d:%02d:%02d %s", t.Hour(), t.Minute(), t.Second(), t.Location())
 }
 
 // GoString implements fmt.GoStringer to use Clock in %#v formats
 func (h Clock) GoString() string {
 	t := time.Time(h)
-	return fmt.Sprintf("timetype.NewClock(%d, %d, %d, %#v)", t.Hour(), t.Minute(), t.Second(), t.Location())
+	return fmt.Sprintf("timetype.NewClock(%d, %d, %d, %s)", t.Hour(), t.Minute(), t.Second(), t.Location())
 }
 
 // UnmarshalJSON converts time to ISO 8601 representation
@@ -63,6 +64,29 @@ func (h *Clock) UnmarshalJSON(b []byte) error {
 	}
 	*h = Clock(t)
 	return nil
+}
+
+// Scan the given SQL value as Clock
+func (h *Clock) Scan(src interface{}) (err error) {
+	switch v := src.(type) {
+	case nil:
+		*h = Clock{}
+	case time.Time:
+		*h = Clock(v)
+	case string:
+		err = h.UnmarshalJSON([]byte(v))
+	case []byte:
+		err = h.UnmarshalJSON(v)
+	default:
+		return ErrInvalidClock
+	}
+
+	return err
+}
+
+// Value returns the SQL value of the given Clock
+func (h Clock) Value() (driver.Value, error) {
+	return h.MarshalJSON()
 }
 
 // Duration is a wrapper of time.Duration, that allows to marshal and unmarshal time in RFC3339 format
@@ -93,4 +117,29 @@ func (d *Duration) UnmarshalJSON(b []byte) error {
 	default:
 		return ErrInvalidDuration
 	}
+}
+
+// Scan the given SQL value as Duration
+func (d *Duration) Scan(src interface{}) (err error) {
+	switch v := src.(type) {
+	case nil:
+		*d = 0
+	case time.Duration:
+		*d = Duration(v)
+	case float64:
+		*d = Duration(time.Duration(v))
+	case string:
+		err = d.UnmarshalJSON([]byte(v))
+	case []byte:
+		err = d.UnmarshalJSON(v)
+	default:
+		return ErrInvalidDuration
+	}
+
+	return err
+}
+
+// Value returns the SQL value of the given Duration
+func (d Duration) Value() (driver.Value, error) {
+	return d.MarshalJSON()
 }

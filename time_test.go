@@ -1,6 +1,7 @@
 package timetype
 
 import (
+	"database/sql/driver"
 	"encoding/json"
 	"testing"
 	"time"
@@ -11,14 +12,12 @@ import (
 
 func TestClock_GoString(t *testing.T) {
 	s := Clock(time.Date(0, time.January, 1, 13, 24, 0, 0, time.UTC)).GoString()
-	gs := "timetype.NewClock(13, 24, 0, &time.Location{name:\"UTC\", zone:[]time.zone(nil), " +
-		"tx:[]time.zoneTrans(nil), cacheStart:0, cacheEnd:0, cacheZone:(*time.zone)(nil)})"
-	assert.Equal(t, gs, s)
+	assert.Equal(t, "timetype.NewClock(13, 24, 0, UTC)", s)
 }
 
 func TestClock_String(t *testing.T) {
 	s := Clock(time.Date(0, time.January, 1, 17, 54, 0, 0, time.UTC)).String()
-	assert.Equal(t, "17:54:0 UTC", s)
+	assert.Equal(t, "17:54:00 UTC", s)
 }
 
 func TestClock_UnmarshalJSON(t *testing.T) {
@@ -68,9 +67,90 @@ func TestDuration_UnmarshalJSON(t *testing.T) {
 	require.Error(t, err)
 	assert.IsType(t, &json.SyntaxError{}, err, "duration should be escaped in quotes or passed as integer")
 
-	err = d.UnmarshalJSON([]byte("\"\""))
+	err = d.UnmarshalJSON([]byte("\"123\""))
 	require.Error(t, err)
-	assert.EqualError(t, err, "time: invalid duration ", "passed empty string to time parser")
+	assert.EqualError(t, err, "time: missing unit in duration \"123\"", "passed empty string to time parser")
+}
+
+func TestDuration_Scan(t *testing.T) {
+	tbl := []struct {
+		arg      interface{}
+		expected Duration
+		err      string
+	}{
+		{
+			arg:      nil,
+			expected: Duration(0),
+		},
+		{
+			arg:      5 * time.Minute,
+			expected: Duration(5 * time.Minute),
+		},
+		{
+			arg:      float64(10*time.Second + 1*time.Microsecond),
+			expected: Duration(10*time.Second + 1*time.Microsecond),
+		},
+		{
+			arg:      time.Duration(32 * time.Hour),
+			expected: Duration(32 * time.Hour),
+		},
+		{
+			arg:      `"5h3m2s"`,
+			expected: Duration(5*time.Hour + 3*time.Minute + 2*time.Second),
+		},
+		{
+			arg:      []byte(`"2h3m"`),
+			expected: Duration(2*time.Hour + 3*time.Minute),
+		},
+		{
+			arg: 'c',
+			err: "timetype: invalid duration",
+		},
+	}
+	for i, tt := range tbl {
+		var d Duration
+		err := d.Scan(tt.arg)
+		if tt.err != "" {
+			assert.EqualError(t, err, tt.err, "case #%d", i)
+		} else {
+			assert.NoError(t, err)
+		}
+		assert.Equal(t, tt.expected, d, "case #%d", i)
+	}
+}
+
+func TestDuration_Value(t *testing.T) {
+	tbl := []struct {
+		arg      Duration
+		expected driver.Value
+	}{
+		{
+			arg:      Duration(2*time.Hour + 3*time.Minute),
+			expected: driver.Value([]byte(`"2h3m0s"`)),
+		},
+		{
+			arg:      Duration(5*time.Hour + 3*time.Minute + 2*time.Second),
+			expected: driver.Value([]byte(`"5h3m2s"`)),
+		},
+		{
+			arg:      Duration(1 * time.Second),
+			expected: driver.Value([]byte(`"1s"`)),
+		},
+		{
+			arg:      Duration(1 * time.Millisecond),
+			expected: driver.Value([]byte(`"1ms"`)),
+		},
+		{
+			arg:      Duration(1 * time.Nanosecond),
+			expected: driver.Value([]byte(`"1ns"`)),
+		},
+	}
+
+	for i, tt := range tbl {
+		actual, err := tt.arg.Value()
+		assert.NoError(t, err)
+		assert.Equal(t, tt.expected, actual, "case #%d", i)
+	}
 }
 
 func TestDuration_MarshalJSON(t *testing.T) {
@@ -83,4 +163,71 @@ func TestClock_MarshalJSON(t *testing.T) {
 	bytes, err := Clock(time.Date(0, time.January, 1, 19, 24, 0, 0, time.UTC)).MarshalJSON()
 	require.NoError(t, err)
 	assert.Equal(t, []byte(`"19:24:00"`), bytes)
+}
+
+func TestClock_Scan(t *testing.T) {
+	tbl := []struct {
+		arg      interface{}
+		expected Clock
+		err      string
+	}{
+		{
+			arg:      nil,
+			expected: Clock(time.Time{}),
+		},
+		{
+			arg:      time.Date(0, time.January, 1, 2, 19, 30, 0, time.UTC),
+			expected: Clock(time.Date(0, time.January, 1, 2, 19, 30, 0, time.UTC)),
+		},
+		{
+			arg:      `"19:24:00"`,
+			expected: Clock(time.Date(0, time.January, 1, 19, 24, 0, 0, time.UTC)),
+		},
+		{
+			arg:      []byte(`"2:21:55"`),
+			expected: Clock(time.Date(0, time.January, 1, 2, 21, 55, 0, time.UTC)),
+		},
+		{
+			arg:      2567,
+			expected: Clock{},
+			err:      "timetype: invalid clock",
+		},
+	}
+
+	for i, tt := range tbl {
+		c := Clock{}
+		err := c.Scan(tt.arg)
+		if tt.err != "" {
+			assert.EqualError(t, err, tt.err, "case #%d", i)
+		} else {
+			assert.NoError(t, err)
+		}
+		assert.Equal(t, tt.expected, c, "case #%d", i)
+	}
+}
+
+func TestClock_Value(t *testing.T) {
+	tbl := []struct {
+		arg      Clock
+		expected driver.Value
+	}{
+		{
+			arg:      Clock(time.Date(0, time.January, 1, 19, 24, 0, 0, time.UTC)),
+			expected: driver.Value([]byte(`"19:24:00"`)),
+		},
+		{
+			arg:      Clock(time.Date(0, time.January, 1, 2, 21, 55, 0, time.UTC)),
+			expected: driver.Value([]byte(`"02:21:55"`)),
+		},
+		{
+			arg:      Clock(time.Date(0, time.January, 1, 2, 19, 30, 0, time.UTC)),
+			expected: driver.Value([]byte(`"02:19:30"`)),
+		},
+	}
+
+	for i, tt := range tbl {
+		actual, err := tt.arg.Value()
+		assert.NoError(t, err)
+		assert.Equal(t, tt.expected, actual, "case #%d", i)
+	}
 }
