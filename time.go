@@ -33,7 +33,8 @@ func NewUTCClock(h, m, s int) Clock {
 
 // MarshalJSON marshals time into time
 func (h Clock) MarshalJSON() ([]byte, error) {
-	return json.Marshal(time.Time(h).Format(ISO8601Clock))
+	res, err := json.Marshal(time.Time(h).Format(ISO8601Clock))
+	return res, wrapExternalErr(err)
 }
 
 // String implements fmt.Stringer to print and log Clock properly
@@ -52,7 +53,7 @@ func (h Clock) GoString() string {
 func (h *Clock) UnmarshalJSON(b []byte) error {
 	var v interface{}
 	if err := json.Unmarshal(b, &v); err != nil {
-		return err
+		return wrapExternalErr(err)
 	}
 	val, ok := v.(string)
 	if !ok {
@@ -60,7 +61,7 @@ func (h *Clock) UnmarshalJSON(b []byte) error {
 	}
 	t, err := time.Parse(ISO8601Clock, val)
 	if err != nil {
-		return err
+		return wrapExternalErr(err)
 	}
 	*h = Clock(t)
 	return nil
@@ -74,9 +75,9 @@ func (h *Clock) Scan(src interface{}) (err error) {
 	case time.Time:
 		*h = Clock(v)
 	case string:
-		err = h.UnmarshalJSON([]byte(v))
+		err = wrapExternalErr(h.UnmarshalJSON([]byte(v)))
 	case []byte:
-		err = h.UnmarshalJSON(v)
+		err = wrapExternalErr(h.UnmarshalJSON(v))
 	default:
 		return ErrInvalidClock
 	}
@@ -101,7 +102,7 @@ func (d Duration) MarshalJSON() ([]byte, error) {
 func (d *Duration) UnmarshalJSON(b []byte) error {
 	var v interface{}
 	if err := json.Unmarshal(b, &v); err != nil {
-		return err
+		return wrapExternalErr(err)
 	}
 	switch value := v.(type) {
 	case float64:
@@ -110,7 +111,7 @@ func (d *Duration) UnmarshalJSON(b []byte) error {
 	case string:
 		tmp, err := time.ParseDuration(value)
 		if err != nil {
-			return err
+			return wrapExternalErr(err)
 		}
 		*d = Duration(tmp)
 		return nil
@@ -129,9 +130,9 @@ func (d *Duration) Scan(src interface{}) (err error) {
 	case float64:
 		*d = Duration(time.Duration(v))
 	case string:
-		err = d.UnmarshalJSON([]byte(v))
+		err = wrapExternalErr(d.UnmarshalJSON([]byte(v)))
 	case []byte:
-		err = d.UnmarshalJSON(v)
+		err = wrapExternalErr(d.UnmarshalJSON(v))
 	default:
 		return ErrInvalidDuration
 	}
@@ -141,5 +142,24 @@ func (d *Duration) Scan(src interface{}) (err error) {
 
 // Value returns the SQL value of the given Duration
 func (d Duration) Value() (driver.Value, error) {
-	return d.MarshalJSON()
+	res, err := d.MarshalJSON()
+	return res, wrapExternalErr(err)
+}
+
+// errExternal wraps an error come outside this package (e.g. from time.ParseDuration).
+// It allows to detect the external error inside tests by asserting the type of an error.
+type errExternal struct {
+	error // wrapped error
+}
+
+// Error returns the error string of the wrapped error
+func (e *errExternal) Error() string {
+	return e.error.Error()
+}
+
+func wrapExternalErr(e error) error {
+	if e == nil {
+		return nil
+	}
+	return &errExternal{error: e}
 }

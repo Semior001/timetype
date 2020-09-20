@@ -2,7 +2,7 @@ package timetype
 
 import (
 	"database/sql/driver"
-	"encoding/json"
+	"errors"
 	"testing"
 	"time"
 
@@ -29,7 +29,7 @@ func TestClock_UnmarshalJSON(t *testing.T) {
 	// errors
 	err = c.UnmarshalJSON([]byte("19:24:00")) // time should be presented as string
 	require.Error(t, err)
-	assert.IsType(t, &json.SyntaxError{}, err, "time should be escaped in quotes")
+	assert.IsType(t, &errExternal{}, err, "time should be escaped in quotes")
 
 	err = c.UnmarshalJSON([]byte("32145")) // invalid clock format
 	assert.EqualError(t, err, "timetype: invalid clock", "clock should be in format \"15:04:05\"")
@@ -37,7 +37,7 @@ func TestClock_UnmarshalJSON(t *testing.T) {
 
 	err = c.UnmarshalJSON([]byte("\"19:24:c00\""))
 	require.Error(t, err)
-	assert.IsType(t, &time.ParseError{}, err, "invalid character \"c\" in seconds")
+	assert.IsType(t, &errExternal{}, err, "invalid character \"c\" in seconds")
 }
 
 func TestNewClock(t *testing.T) {
@@ -46,6 +46,10 @@ func TestNewClock(t *testing.T) {
 
 	assert.Equal(t, Clock(time.Date(0, time.January, 1, 23, 59, 59, 0, time.UTC)),
 		NewUTCClock(23, 59, 59))
+}
+
+func TestErrExternal_Error(t *testing.T) {
+	assert.EqualError(t, wrapExternalErr(errors.New("some test error")), "some test error")
 }
 
 func TestDuration_UnmarshalJSON(t *testing.T) {
@@ -65,11 +69,12 @@ func TestDuration_UnmarshalJSON(t *testing.T) {
 
 	err = d.UnmarshalJSON([]byte("1h5m3s"))
 	require.Error(t, err)
-	assert.IsType(t, &json.SyntaxError{}, err, "duration should be escaped in quotes or passed as integer")
+	assert.IsType(t, &errExternal{}, err, "duration should be escaped in quotes or passed as integer")
 
 	err = d.UnmarshalJSON([]byte("\"123\""))
 	require.Error(t, err)
-	assert.EqualError(t, err, "time: missing unit in duration \"123\"", "passed empty string to time parser")
+	assert.IsType(t, &errExternal{}, err, "passed empty string to time parser")
+	//assert.EqualError(t, err, "time: missing unit in duration \"123\"", "passed empty string to time parser")
 }
 
 func TestDuration_Scan(t *testing.T) {
