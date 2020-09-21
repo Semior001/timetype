@@ -42,10 +42,10 @@ func TestClock_UnmarshalJSON(t *testing.T) {
 
 func TestNewClock(t *testing.T) {
 	assert.Equal(t, Clock(time.Date(0, time.January, 1, 13, 24, 32, 0, time.Local)),
-		NewClock(13, 24, 32, time.Local))
+		NewClock(13, 24, 32, 0, time.Local))
 
 	assert.Equal(t, Clock(time.Date(0, time.January, 1, 23, 59, 59, 0, time.UTC)),
-		NewUTCClock(23, 59, 59))
+		NewUTCClock(23, 59, 59, 0))
 }
 
 func TestErrExternal_Error(t *testing.T) {

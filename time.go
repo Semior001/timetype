@@ -25,13 +25,13 @@ const (
 type Clock time.Time
 
 // NewClock returns the Clock in the given location with given hours, minutes and secs
-func NewClock(h, m, s int, loc *time.Location) Clock {
-	return Clock(time.Date(0, time.January, 1, h, m, s, 0, loc))
+func NewClock(h, m, s, ns int, loc *time.Location) Clock {
+	return Clock(time.Date(0, time.January, 1, h, m, s, ns, loc))
 }
 
 // NewUTCClock returns new clock with given hours, minutes and seconds in the UTC location
-func NewUTCClock(h, m, s int) Clock {
-	return NewClock(h, m, s, time.UTC)
+func NewUTCClock(h, m, s, ns int) Clock {
+	return NewClock(h, m, s, ns, time.UTC)
 }
 
 // MarshalJSON marshals time into time
@@ -98,7 +98,7 @@ func (h *Clock) Scan(src interface{}) (err error) {
 
 // Value returns the SQL value of the given Clock
 func (h Clock) Value() (driver.Value, error) {
-	return h.MarshalJSON()
+	return time.Time(h).Format(ISO8601ClockMicro), nil
 }
 
 // Duration is a wrapper of time.Duration, that allows to marshal and unmarshal time in RFC3339 format
@@ -153,8 +153,7 @@ func (d *Duration) Scan(src interface{}) (err error) {
 
 // Value returns the SQL value of the given Duration
 func (d Duration) Value() (driver.Value, error) {
-	res, err := d.MarshalJSON()
-	return res, wrapExternalErr(err)
+	return int64(d), nil
 }
 
 // errExternal wraps an error come outside this package (e.g. from time.ParseDuration).
