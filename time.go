@@ -14,8 +14,11 @@ var (
 	ErrInvalidDuration = errors.New("timetype: invalid duration")
 )
 
-// ISO8601Clock describes time layout in ISO 8601 standard
-const ISO8601Clock = "15:04:05"
+// Templates to parse clocks
+const (
+	ISO8601Clock      = "15:04:05"
+	ISO8601ClockMicro = "15:04:05.000000"
+)
 
 // Clock is a wrapper for time.time to allow parsing datetime stamp with time only in
 // ISO 8601 format, like "15:04:05"
@@ -33,7 +36,7 @@ func NewUTCClock(h, m, s int) Clock {
 
 // MarshalJSON marshals time into time
 func (h Clock) MarshalJSON() ([]byte, error) {
-	res, err := json.Marshal(time.Time(h).Format(ISO8601Clock))
+	res, err := json.Marshal(time.Time(h).Format(ISO8601ClockMicro))
 	return res, wrapExternalErr(err)
 }
 
@@ -75,9 +78,17 @@ func (h *Clock) Scan(src interface{}) (err error) {
 	case time.Time:
 		*h = Clock(v)
 	case string:
-		err = wrapExternalErr(h.UnmarshalJSON([]byte(v)))
+		t, err := time.Parse(ISO8601ClockMicro, v)
+		if err != nil {
+			return wrapExternalErr(err)
+		}
+		*h = Clock(t)
 	case []byte:
-		err = wrapExternalErr(h.UnmarshalJSON(v))
+		t, err := time.Parse(ISO8601ClockMicro, string(v))
+		if err != nil {
+			return wrapExternalErr(err)
+		}
+		*h = Clock(t)
 	default:
 		return ErrInvalidClock
 	}
@@ -127,8 +138,8 @@ func (d *Duration) Scan(src interface{}) (err error) {
 		*d = 0
 	case time.Duration:
 		*d = Duration(v)
-	case float64:
-		*d = Duration(time.Duration(v))
+	case int64:
+		*d = Duration(v)
 	case string:
 		err = wrapExternalErr(d.UnmarshalJSON([]byte(v)))
 	case []byte:
