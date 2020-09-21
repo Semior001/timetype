@@ -62,7 +62,7 @@ func (h *Clock) UnmarshalJSON(b []byte) error {
 	if !ok {
 		return ErrInvalidClock
 	}
-	t, err := time.Parse(ISO8601Clock, val)
+	t, err := time.Parse(ISO8601ClockMicro, val)
 	if err != nil {
 		return wrapExternalErr(err)
 	}
@@ -137,6 +137,8 @@ func (d *Duration) Scan(src interface{}) (err error) {
 	case nil:
 		*d = 0
 	case time.Duration:
+		*d = Duration(v)
+	case float64:
 		*d = Duration(v)
 	case int64:
 		*d = Duration(v)

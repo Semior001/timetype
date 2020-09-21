@@ -22,12 +22,12 @@ func TestClock_String(t *testing.T) {
 
 func TestClock_UnmarshalJSON(t *testing.T) {
 	var c Clock
-	err := c.UnmarshalJSON([]byte("\"19:24:00\""))
+	err := c.UnmarshalJSON([]byte("\"19:24:00.000000\""))
 	require.NoError(t, err)
 	assert.Equal(t, Clock(time.Date(0, time.January, 1, 19, 24, 0, 0, time.UTC)), c)
 
 	// errors
-	err = c.UnmarshalJSON([]byte("19:24:00")) // time should be presented as string
+	err = c.UnmarshalJSON([]byte("19:24:00.000000")) // time should be presented as string
 	require.Error(t, err)
 	assert.IsType(t, &errExternal{}, err, "time should be escaped in quotes")
 
@@ -35,7 +35,7 @@ func TestClock_UnmarshalJSON(t *testing.T) {
 	assert.EqualError(t, err, "timetype: invalid clock", "clock should be in format \"15:04:05\"")
 	assert.Equal(t, ErrInvalidClock, err)
 
-	err = c.UnmarshalJSON([]byte("\"19:24:c00\""))
+	err = c.UnmarshalJSON([]byte("\"19:24:c00.000000\""))
 	require.Error(t, err)
 	assert.IsType(t, &errExternal{}, err, "invalid character \"c\" in seconds")
 }
@@ -118,7 +118,7 @@ func TestDuration_Scan(t *testing.T) {
 		if tt.err != "" {
 			assert.EqualError(t, err, tt.err, "case #%d", i)
 		} else {
-			assert.NoError(t, err)
+			assert.NoError(t, err, "case #%d", i)
 		}
 		assert.Equal(t, tt.expected, d, "case #%d", i)
 	}
@@ -131,23 +131,23 @@ func TestDuration_Value(t *testing.T) {
 	}{
 		{
 			arg:      Duration(2*time.Hour + 3*time.Minute),
-			expected: driver.Value([]byte(`"2h3m0s"`)),
+			expected: int64(2*time.Hour + 3*time.Minute),
 		},
 		{
 			arg:      Duration(5*time.Hour + 3*time.Minute + 2*time.Second),
-			expected: driver.Value([]byte(`"5h3m2s"`)),
+			expected: int64(5*time.Hour + 3*time.Minute + 2*time.Second),
 		},
 		{
 			arg:      Duration(1 * time.Second),
-			expected: driver.Value([]byte(`"1s"`)),
+			expected: int64(1 * time.Second),
 		},
 		{
 			arg:      Duration(1 * time.Millisecond),
-			expected: driver.Value([]byte(`"1ms"`)),
+			expected: int64(1 * time.Millisecond),
 		},
 		{
 			arg:      Duration(1 * time.Nanosecond),
-			expected: driver.Value([]byte(`"1ns"`)),
+			expected: int64(1 * time.Nanosecond),
 		},
 	}
 
@@ -167,7 +167,7 @@ func TestDuration_MarshalJSON(t *testing.T) {
 func TestClock_MarshalJSON(t *testing.T) {
 	bytes, err := Clock(time.Date(0, time.January, 1, 19, 24, 0, 0, time.UTC)).MarshalJSON()
 	require.NoError(t, err)
-	assert.Equal(t, []byte(`"19:24:00"`), bytes)
+	assert.Equal(t, []byte(`"19:24:00.000000"`), bytes)
 }
 
 func TestClock_Scan(t *testing.T) {
@@ -185,11 +185,11 @@ func TestClock_Scan(t *testing.T) {
 			expected: Clock(time.Date(0, time.January, 1, 2, 19, 30, 0, time.UTC)),
 		},
 		{
-			arg:      `"19:24:00"`,
+			arg:      `19:24:00.000000`,
 			expected: Clock(time.Date(0, time.January, 1, 19, 24, 0, 0, time.UTC)),
 		},
 		{
-			arg:      []byte(`"2:21:55"`),
+			arg:      []byte(`2:21:55.000000`),
 			expected: Clock(time.Date(0, time.January, 1, 2, 21, 55, 0, time.UTC)),
 		},
 		{
@@ -205,7 +205,7 @@ func TestClock_Scan(t *testing.T) {
 		if tt.err != "" {
 			assert.EqualError(t, err, tt.err, "case #%d", i)
 		} else {
-			assert.NoError(t, err)
+			assert.NoError(t, err, "case #%d", i)
 		}
 		assert.Equal(t, tt.expected, c, "case #%d", i)
 	}
@@ -218,15 +218,15 @@ func TestClock_Value(t *testing.T) {
 	}{
 		{
 			arg:      Clock(time.Date(0, time.January, 1, 19, 24, 0, 0, time.UTC)),
-			expected: driver.Value([]byte(`"19:24:00"`)),
+			expected: driver.Value(`19:24:00.000000`),
 		},
 		{
 			arg:      Clock(time.Date(0, time.January, 1, 2, 21, 55, 0, time.UTC)),
-			expected: driver.Value([]byte(`"02:21:55"`)),
+			expected: driver.Value(`02:21:55.000000`),
 		},
 		{
 			arg:      Clock(time.Date(0, time.January, 1, 2, 19, 30, 0, time.UTC)),
-			expected: driver.Value([]byte(`"02:19:30"`)),
+			expected: driver.Value(`02:19:30.000000`),
 		},
 	}
 
