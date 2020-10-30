@@ -37,7 +37,7 @@ func TestClock_UnmarshalJSON(t *testing.T) {
 
 	err = c.UnmarshalJSON([]byte("\"19:24:c00.000000\""))
 	require.Error(t, err)
-	assert.IsType(t, &errExternal{}, err, "invalid character \"c\" in seconds")
+	assert.IsType(t, &UnknownFormatError{}, err, "invalid character \"c\" in seconds")
 }
 
 func TestNewClock(t *testing.T) {
@@ -74,7 +74,24 @@ func TestDuration_UnmarshalJSON(t *testing.T) {
 	err = d.UnmarshalJSON([]byte("\"123\""))
 	require.Error(t, err)
 	assert.IsType(t, &errExternal{}, err, "passed empty string to time parser")
-	//assert.EqualError(t, err, "time: missing unit in duration \"123\"", "passed empty string to time parser")
+}
+
+func TestUnknownFormatError_Error(t *testing.T) {
+	ue := UnknownFormatError{
+		Errors: []error{
+			errors.New("one"),
+			errors.New("two"),
+			errors.New("three"),
+		},
+		Layouts: []string{
+			ISO8601Clock,
+			ISO8601ClockMicro,
+			"some unknown layout",
+		},
+		Val: "123456",
+	}
+	assert.EqualError(t, &ue,
+		"timetype: failed to parse \"123456\" in layouts: [\"15:04:05\", \"15:04:05.000000\", \"some unknown layout\"]")
 }
 
 func TestDuration_Scan(t *testing.T) {
@@ -94,6 +111,10 @@ func TestDuration_Scan(t *testing.T) {
 		{
 			arg:      float64(10*time.Second + 1*time.Microsecond),
 			expected: Duration(10*time.Second + 1*time.Microsecond),
+		},
+		{
+			arg:      int64(32 * time.Hour),
+			expected: Duration(32 * time.Hour),
 		},
 		{
 			arg:      time.Duration(32 * time.Hour),
@@ -196,6 +217,16 @@ func TestClock_Scan(t *testing.T) {
 			arg:      2567,
 			expected: Clock{},
 			err:      "timetype: invalid clock",
+		},
+		{
+			arg:      "abacaba",
+			expected: Clock{},
+			err:      "timetype: failed to parse \"abacaba\" in layouts: [\"15:04:05\", \"15:04:05.000000\"]",
+		},
+		{
+			arg:      []byte("abacaba"),
+			expected: Clock{},
+			err:      "timetype: failed to parse \"abacaba\" in layouts: [\"15:04:05\", \"15:04:05.000000\"]",
 		},
 	}
 
